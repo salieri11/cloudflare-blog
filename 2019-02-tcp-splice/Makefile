@@ -19,26 +19,24 @@ all: venv/.ok
 		echo-splice.c \
 		-o echo-splice
 
-	clang -Wall -Wextra -O2 -emit-llvm -c \
-		echo-sockmap-kern.c \
-		-S -o - \
-		| llc -march=bpf -filetype=obj -o - \
-		| ./venv/bin/python3 tbpf-decode-elf.py /dev/stdin \
-			prog_parser prog_verdict \
-		> echo-sockmap-ebpf.c
-
 	clang -g -Wall -Wextra -O2 \
-		tbpf.c \
-		net.c \
-		echo-sockmap-ebpf.c \
-		echo-sockmap.c \
-		-l elf \
-		-o echo-sockmap
+	net.c \
+	echo-splice-proxy.c \
+	-o echo-splice-proxy
+
+	#clang -g -Wall -Wextra -O2 \
+	#	tbpf.c \
+	#	net.c \
+	#	echo-sockmap-ebpf.c \
+	#	echo-sockmap.c \
+	#	-l elf \
+	#	-o echo-sockmap
 
 venv/.ok:
-	virtualenv venv --python=python3
-	./venv/bin/pip3 install pyelftools
-	touch $@
+	#virtualenv venv --python=python3
+	#./venv/bin/pip3 install pyelftools
+	pip3 install pyelftools
+	#touch $@
 
 .PHONY: format
 format:

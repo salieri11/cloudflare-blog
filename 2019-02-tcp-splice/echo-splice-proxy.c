@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/mman.h>
+
 #include "common.h"
 
 int main(int argc, char **argv)
@@ -53,6 +53,21 @@ again_accept:;
 	}
 
 	uint64_t t0 = realtime_now();
+	
+	/* There is no "good" splice buffer size. Anecdotical evidence
+	 * says that it should be no larger than 512KiB since this is
+	 * the max we can expect realistically to fit into cpu
+	 * cache. */
+#define SPLICE_MAX (512*1024)
+	
+	struct sockaddr_storage target;
+	net_parse_sockaddr(&target, "0.0.0.0:6789");
+	int target_fd = net_connect_tcp_blocking(&target, 1);
+	if (target_fd < 0) {
+		PFATAL("connect()");
+	}
+
+	sleep(1);
 
 	int pfd[2];
 	int r = pipe(pfd);
@@ -60,28 +75,19 @@ again_accept:;
 		PFATAL("pipe()");
 	}
 
-	/* There is no "good" splice buffer size. Anecdotical evidence
-	 * says that it should be no larger than 512KiB since this is
-	 * the max we can expect realistically to fit into cpu
-	 * cache. */
-#define SPLICE_MAX (512*1024)
-
 	r = fcntl(pfd[0], F_SETPIPE_SZ, SPLICE_MAX);
 	if (r < 0) {
 		PFATAL("fcntl()");
-	}
+	}	
 
 	uint64_t sum = 0;
-	int mfd = memfd_create("temp", MFD_ALLOW_SEALING);
-	if (ftruncate(mfd, 20000000) == -1)
-        PFATAL("truncate");
-
 	while (1) {
 		/* This is fairly unfair. We are doing 512KiB buffer
 		 * in one go, as opposed to naive approaches. Cheating. */
-		int n = splice(cd, NULL, pfd[1], NULL, SPLICE_MAX,
-			       SPLICE_F_MOVE);
+		int n = splice(cd, NULL, pfd[1], NULL, SPLICE_MAX, SPLICE_F_MOVE);
+		// printf("n == %d\n", n);
 		if (n < 0) {
+			printf("error == %d\n", errno);
 			if (errno == ECONNRESET) {
 				fprintf(stderr, "[!] ECONNRESET\n");
 				break;
@@ -100,7 +106,8 @@ again_accept:;
 		sum += n;
 
 
-		int m = splice(pfd[0], NULL, mfd, NULL, sum, SPLICE_F_MOVE);
+		int m = splice(pfd[0], NULL, target_fd, NULL, n, SPLICE_F_MOVE);
+		// printf("m == %d\n", m);
 		if (m < 0) {
 			if (errno == ECONNRESET) {
 				fprintf(stderr, "[!] ECONNRESET on origin\n");
@@ -129,9 +136,10 @@ again_accept:;
 	}
 
 	close(cd);
+	shutdown(target_fd, SHUT_RDWR);
 	uint64_t t1 = realtime_now();
 
-	fprintf(stderr, "[+] Read %.1fMiB in %.1fms\n", sum / (1024 * 1024.),
+	fprintf(stderr, "[+] Forwarded %.1fMiB in %.1fms\n", sum / (1024 * 1024.),
 		(t1 - t0) / 1000000.);
 	goto again_accept;
 
