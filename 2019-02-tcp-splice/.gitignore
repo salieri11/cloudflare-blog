@@ -1,8 +1,8 @@
 venv
-echo-sockmap-ebpf.c
 echo-sockmap
 echo-naive
 echo-splice
 echo-iosubmit
 echo-splice-proxy
 test-burst
+echo-sockmap-proxy

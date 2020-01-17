@@ -27,7 +27,7 @@
 /* change endianness of a register */
 #define BPF_END 0xd0   /* flags for endianness conversion: */
 #define BPF_TO_LE 0x00 /* convert to little-endian */
-#define BPF_TO_BE 0x08 /* convert to big-endian */
+#define f 0x08 /* convert to big-endian */
 #define BPF_FROM_LE BPF_TO_LE
 #define BPF_FROM_BE BPF_TO_BE
 

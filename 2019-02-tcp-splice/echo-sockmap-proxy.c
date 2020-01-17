@@ -127,6 +127,13 @@ again_accept:;
 		setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
 	}
 
+	struct sockaddr_storage target;
+	net_parse_sockaddr(&target, argv[2]);
+	int target_fd = net_connect_tcp_blocking(&target, 1);
+	if (target_fd < 0) {
+		PFATAL("connect()");
+	}
+
 	/* [*] Perform ebpf socket magic */
 	/* Add socket to SOCKMAP. Otherwise the ebpf won't work. */
 	int idx = 0;
@@ -140,10 +147,22 @@ again_accept:;
 		}
 		PFATAL("bpf(MAP_UPDATE_ELEM)");
 	}
+	idx = 1;
+	val = target_fd;
+	r = tbpf_map_update_elem(sock_map, &idx, &val, BPF_ANY);
+	if (r != 0) {
+		if (errno == EOPNOTSUPP) {
+			perror("pushing closed socket to sockmap?1");
+			close(target_fd);
+			goto again_accept;
+		}
+		PFATAL("bpf1(MAP_UPDATE_ELEM)");
+	}
 
 	/* [*] Wait for the socket to close. Let sockmap do the magic. */
-	struct pollfd fds[1] = {
+	struct pollfd fds[2] = {
 		{.fd = fd, .events = POLLRDHUP},
+		{.fd = target_fd, .events = POLLRDHUP},
 	};
 	poll(fds, 1, -1);
 
@@ -159,14 +178,28 @@ again_accept:;
 		if (errno) {
 			perror("sockmap fd");
 		}
+
+		r = getsockopt(target_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+		if (r < 0) {
+			PFATAL("getsockopt()1");
+		}
+		errno = err;
+		if (errno) {
+			perror("sockmap target_fd");
+		}
 	}
 
 	/* Get byte count from TCP_INFO */
-	struct xtcp_info ta = {};
-	socklen_t ti_len = sizeof(ta);
-	r = getsockopt(fd, IPPROTO_TCP, TCP_INFO, &ta, &ti_len);
+	struct xtcp_info  t_listen = {};
+	struct xtcp_info t_target = {};
+	socklen_t ti_len = sizeof(t_listen);
+	r = getsockopt(fd, IPPROTO_TCP, TCP_INFO, &t_listen, &ti_len);
 	if (r < 0) {
 		PFATAL("getsockopt(TPC_INFO)");
+	}
+	r = getsockopt(target_fd, IPPROTO_TCP, TCP_INFO, &t_target, &ti_len);
+	if (r < 0) {
+		PFATAL("getsockopt(TPC_INFO)1");
 	}
 
 	/* Cleanup the entry from sockmap. */
@@ -182,7 +215,21 @@ again_accept:;
 	}
 	close(fd);
 
-	fprintf(stderr, "[+] rx=%lu tx=%lu\n", ta.tcpi_bytes_received * 8,
-		ta.tcpi_bytes_sent - ta.tcpi_bytes_retrans);
+	idx = 1;
+	r = tbpf_map_delete_elem(sock_map, &idx);
+	if (r != 0) {
+		if (errno == EINVAL) {
+			fprintf(stderr,
+				"[-] Removing closed sock from sockmap1\n");
+		} else {
+			PFATAL("bpf(MAP_DELETE_ELEM, sock_map1)");
+		}
+	}
+	close(target_fd);
+
+	fprintf(stderr, "[+] in socket rx=%lu tx=%lu\n", t_listen.tcpi_bytes_received,
+		t_listen.tcpi_bytes_sent - t_listen.tcpi_bytes_retrans);
+	fprintf(stderr, "[+] out socket rx=%lu tx=%lu\n", t_target.tcpi_bytes_received,
+		t_target.tcpi_bytes_sent - t_target.tcpi_bytes_retrans);
 	goto again_accept;
 }
