@@ -2,6 +2,7 @@
 
 #include "bpf.h"
 #include "bpf_helpers.h"
+#include <arpa/inet.h>
 
 struct bpf_map_def SEC("maps") sock_map = {
 	.type = BPF_MAP_TYPE_SOCKMAP,
@@ -38,6 +39,12 @@ int _prog_parser(struct __sk_buff *skb)
 SEC("prog_verdict")
 int _prog_verdict(struct __sk_buff *skb)
 {
-	uint32_t idx = 1;
+	static uint32_t ip_receiver = 574886340;
+	static uint32_t ip_sender = 602903655;
+
+	int idx =0;
+	if(ip_sender == skb->remote_ip4)
+		idx = 1;
+
 	return bpf_sk_redirect_map(skb, &sock_map, idx, 0);
 }
