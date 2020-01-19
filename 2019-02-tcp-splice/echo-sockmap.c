@@ -103,6 +103,8 @@ again_accept:;
 	struct sockaddr_storage client;
 	int fd = net_accept(sd, &client);
 
+	printf("[+] incoming connection\n");
+
 	if (busy_poll) {
 		int val = 10 * 1000; // 10 ms, in us. requires CAP_NET_ADMIN
 		int r = setsockopt(fd, SOL_SOCKET, SO_BUSY_POLL, &val,
