@@ -100,6 +100,8 @@ int main(int argc, char **argv)
 
 	uint64_t total_t0 = realtime_now();
 
+	printf("total data: %d", burst_count * burst_sz);
+
 	int burst_i;
 	for (burst_i = 0; burst_i < burst_count; burst_i += 1) {
 		uint64_t t0 = realtime_now();
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
 					.msg_iov = tx_iov,
 					.msg_iovlen = d,
 				};
-				int n = sendmsg(fd, &msg_hdr, MSG_DONTWAIT);
+				int n = sendmsg(fd, &msg_hdr, 0);
 				if (n < 0) {
 					if (errno == EINTR) {
 						continue;
@@ -140,6 +142,7 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					tx_bytes -= n;
+					printf("sent: %d, total: %d\n", n, tx_bytes);
 				}
 			}
 
@@ -159,7 +162,7 @@ int main(int argc, char **argv)
 					.msg_iov = rx_iov,
 					.msg_iovlen = d,
 				};
-				int n = recvmsg(fd, &msg_hdr, flags);
+				int n = recvmsg(fd, &msg_hdr, 0);
 				if (n < 0) {
 					if ((flags & MSG_DONTWAIT) != 0 &&
 					    errno == EAGAIN) {
@@ -172,6 +175,7 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					rx_bytes -= n;
+					printf("received: %d, total: %d\n", n, rx_bytes);
 				}
 			}
 	
