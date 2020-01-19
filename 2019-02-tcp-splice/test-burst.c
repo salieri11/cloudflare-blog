@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 		uint64_t t0 = realtime_now();
 
 		uint64_t tx_bytes = burst_sz;
-		// uint64_t rx_bytes = burst_sz;
+		uint64_t rx_bytes = burst_sz;
 
 		while (tx_bytes) {
 			if (tx_bytes) {
@@ -143,7 +143,8 @@ int main(int argc, char **argv)
 				}
 			}
 
-			/*
+	         	
+
 			if (rx_bytes) {
 				int flags = MSG_DONTWAIT;
 				if (tx_bytes == 0) {
@@ -173,7 +174,7 @@ int main(int argc, char **argv)
 					rx_bytes -= n;
 				}
 			}
-			*/
+	
 		}
 
 		uint64_t t1 = realtime_now();
