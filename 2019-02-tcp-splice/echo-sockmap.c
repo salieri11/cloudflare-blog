@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	net_parse_sockaddr(&listen, argv[1]);
 
 	int busy_poll = 0;
-	if (argc > 3) {
+	if (argc > 2) {
 		busy_poll = 1;
 	}
 
