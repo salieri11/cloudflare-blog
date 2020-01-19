@@ -39,10 +39,10 @@ int _prog_parser(struct __sk_buff *skb)
 SEC("prog_verdict")
 int _prog_verdict(struct __sk_buff *skb)
 {
-	static uint32_t ip_receiver = 574886340;
-	static uint32_t ip_sender = 602903655;
+	static uint32_t ip_receiver = 599884472; // "35.193.130.184"
+	static uint32_t ip_sender = 602903655; // "	35.239.148.103"
 
-	int idx =0;
+	int idx = 0;
 	if(ip_sender == skb->remote_ip4)
 		idx = 1;
 
