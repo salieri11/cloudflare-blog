@@ -47,7 +47,7 @@ struct bpf_insn bpf_insn_prog_verdict[] = {
 		.dst_reg = BPF_REG_2,
 		.src_reg = BPF_REG_0,
 		.off = 1,
-		.imm = 602903655 /**/
+		.imm = 1737813795 /**/
 	},
 	{
 		.code = 0xb7,

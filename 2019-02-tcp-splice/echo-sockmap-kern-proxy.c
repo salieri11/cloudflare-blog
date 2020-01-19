@@ -13,8 +13,8 @@ struct bpf_map_def SEC("maps") sock_map = {
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-#ifndef NDEBUG
+#define DEBUG 1
+#ifdef DEBUG
 /* Only use this for debug output. Notice output from bpf_trace_printk()
  * end-up in /sys/kernel/debug/tracing/trace_pipe
  */
@@ -32,7 +32,8 @@ struct bpf_map_def SEC("maps") sock_map = {
 
 SEC("prog_parser")
 int _prog_parser(struct __sk_buff *skb)
-{
+{       
+	//  bpf_debug("parser %d", skb->len);
 	return skb->len;
 }
 
@@ -41,9 +42,12 @@ int _prog_verdict(struct __sk_buff *skb)
 {
 	static uint32_t ip_receiver = 599884472; // "35.193.130.184"
 	static uint32_t ip_sender = 602903655; // "	35.239.148.103"
-
+	
+	uint32_t rem_ip = skb->remote_ip4;
+	// bpf_debug("verdict %lu", htonl(rem_ip));
+	// uint32_t rem_ip = ntohl(skb->remote_ip4);
 	int idx = 0;
-	if(ip_sender == skb->remote_ip4)
+	if(skb->remote_ip4 == 1737813795)
 		idx = 1;
 
 	return bpf_sk_redirect_map(skb, &sock_map, idx, 0);
