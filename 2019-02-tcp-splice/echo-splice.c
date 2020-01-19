@@ -71,7 +71,8 @@ again_accept:;
 		PFATAL("fcntl()");
 	}
 
-	uint64_t sum = 0;
+	uint64_t w_sum = 0;
+	uint64_t r_sum = 0;
 	int mfd = memfd_create("temp", MFD_ALLOW_SEALING);
 	if (ftruncate(mfd, 20000000) == -1)
         PFATAL("truncate");
@@ -97,10 +98,10 @@ again_accept:;
 			break;
 		}
 
-		sum += n;
+		r_sum += n;
 
 
-		int m = splice(pfd[0], NULL, mfd, NULL, sum, SPLICE_F_MOVE);
+		int m = splice(pfd[0], NULL, cd, NULL, n, SPLICE_F_MOVE);
 		if (m < 0) {
 			if (errno == ECONNRESET) {
 				fprintf(stderr, "[!] ECONNRESET on origin\n");
@@ -126,12 +127,16 @@ again_accept:;
 		if (m != n) {
 			FATAL("expecting splice to block");
 		}
+
+		w_sum += m;
 	}
 
 	close(cd);
 	uint64_t t1 = realtime_now();
 
-	fprintf(stderr, "[+] Read %.1fMiB in %.1fms\n", sum / (1024 * 1024.),
+	fprintf(stderr, "[+] Read %.1fMiB in %.1fms\n", r_sum / (1024 * 1024.),
+		(t1 - t0) / 1000000.);
+	fprintf(stderr, "[+] Write %.1fMiB in %.1fms\n", w_sum / (1024 * 1024.),
 		(t1 - t0) / 1000000.);
 	goto again_accept;
 
