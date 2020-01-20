@@ -25,37 +25,9 @@ struct bpf_insn bpf_insn_prog_parser[] = {{
 struct tbpf_reloc bpf_reloc_prog_parser[] = {
 	{.name = NULL, .type = 0, .offset = 0}};
 
-size_t bpf_insn_prog_verdict_cnt = 9;
+size_t bpf_insn_prog_verdict_cnt = 6;
 
 struct bpf_insn bpf_insn_prog_verdict[] = {
-	{
-		.code = 0x61,
-		.dst_reg = BPF_REG_2,
-		.src_reg = BPF_REG_1,
-		.off = 92,
-		.imm = 0 /**/
-	},
-	{
-		.code = 0xb7,
-		.dst_reg = BPF_REG_3,
-		.src_reg = BPF_REG_0,
-		.off = 0,
-		.imm = 1 /**/
-	},
-	{
-		.code = 0x15,
-		.dst_reg = BPF_REG_2,
-		.src_reg = BPF_REG_0,
-		.off = 1,
-		.imm = 1737813795 /**/
-	},
-	{
-		.code = 0xb7,
-		.dst_reg = BPF_REG_3,
-		.src_reg = BPF_REG_0,
-		.off = 0,
-		.imm = 0 /**/
-	},
 	{
 		.code = 0x18,
 		.dst_reg = BPF_REG_2,
@@ -69,6 +41,13 @@ struct bpf_insn bpf_insn_prog_verdict[] = {
 		.src_reg = BPF_REG_0,
 		.off = 0,
 		.imm = 0 /**/
+	},
+	{
+		.code = 0xb7,
+		.dst_reg = BPF_REG_3,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 1 /**/
 	},
 	{
 		.code = 0xb7,
@@ -93,5 +72,5 @@ struct bpf_insn bpf_insn_prog_verdict[] = {
 	}};
 
 struct tbpf_reloc bpf_reloc_prog_verdict[] = {
-	{.name = "sock_map", .type = 1, .offset = 4},
+	{.name = "sock_map", .type = 1, .offset = 0},
 	{.name = NULL, .type = 0, .offset = 0}};

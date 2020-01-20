@@ -26,8 +26,8 @@ int main(int argc, char **argv)
 {
 	/* [*] SOCKMAP requires more than 16MiB of locked mem */
 	struct rlimit rlim = {
-		.rlim_cur = 128 * 1024 * 1024,
-		.rlim_max = 128 * 1024 * 1024,
+		.rlim_cur = 32 * 1024 * 1024,
+		.rlim_max = 32 * 1024 * 1024,
 	};
 	/* ignore error */
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
@@ -133,6 +133,14 @@ again_accept:;
 	if (target_fd < 0) {
 		PFATAL("connect()");
 	}
+
+	{
+                /* There is a bug in sockmap which prevents it from
+                 * working right when snd buffer is full. Set it to
+                 * gigantic value. */
+                int val = 32 * 1024 * 1024;
+                setsockopt(target_fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
+        }
 
 	/* [*] Perform ebpf socket magic */
 	/* Add socket to SOCKMAP. Otherwise the ebpf won't work. */
