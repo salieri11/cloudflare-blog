@@ -142,11 +142,9 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					tx_bytes -= n;
-					printf("sent: %d, total: %d\n", n, tx_bytes);
+					printf("sent: %d, left: %d\n", n, tx_bytes);
 				}
 			}
-
-	         	
 
 			if (rx_bytes) {
 				int flags = MSG_DONTWAIT;
@@ -162,7 +160,7 @@ int main(int argc, char **argv)
 					.msg_iov = rx_iov,
 					.msg_iovlen = d,
 				};
-				int n = recvmsg(fd, &msg_hdr, 0);
+				int n = recvmsg(fd, &msg_hdr, MSG_WAITALL);
 				if (n < 0) {
 					if ((flags & MSG_DONTWAIT) != 0 &&
 					    errno == EAGAIN) {

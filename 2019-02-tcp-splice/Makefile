@@ -52,6 +52,13 @@ echo-splice-proxy:
 	echo-splice-proxy.c \
 	-o echo-splice-proxy
 
+.PHONY: echo-naive-proxy
+echo-naive-proxy:
+	clang -g -Wall -Wextra -O2 \
+	net.c \
+	echo-naive-proxy.c \
+	-o echo-naive-proxy
+
 .PHONY: echo-sockmap
 echo-sockmap: ebpf-prog
 	gcc -g -Wall -Wextra -O2 \
