@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
 	uint64_t total_t0 = realtime_now();
 
-	printf("total data: %d", burst_count * burst_sz);
+	printf("total data: %lu, chunk_size:%lu", burst_count * burst_sz, burst_sz);
 
 	int burst_i;
 	for (burst_i = 0; burst_i < burst_count; burst_i += 1) {
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 					.msg_iov = rx_iov,
 					.msg_iovlen = d,
 				};
-				int n = recvmsg(fd, &msg_hdr, MSG_WAITALL);
+				int n = recvmsg(fd, &msg_hdr, 0);
 				if (n < 0) {
 					if ((flags & MSG_DONTWAIT) != 0 &&
 					    errno == EAGAIN) {

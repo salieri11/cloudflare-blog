@@ -4,12 +4,80 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <pthread.h>
 #include "common.h"
+
+typedef struct _thread_data_t {
+  int tid;
+  uint64_t sum;
+  int cd;
+  int target_fd;
+} thread_data;
+
+void *return_data(void *arg) {
+	thread_data* data = (thread_data*)arg;
+	char buf[BUFFER_SIZE];
+	while(1) {
+	int k = recv(data->target_fd, buf, sizeof(buf), 0);
+		if (k < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			if (errno == ECONNRESET) {
+				fprintf(stderr, "[!] 1ECONNRESET\n");
+			}
+		}
+
+		if (k == 0) {
+			/* On TCP socket zero means EOF */
+			fprintf(stderr, "[-] edge side EOF\n");
+			goto r;
+		}
+
+		data->sum += k;
+
+		int l = send(data->cd, buf, k, 0);
+		if (l < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			if (errno == ECONNRESET) {
+				fprintf(stderr, "[!] 2ECONNRESET on origin\n");
+				goto r;
+			}
+			if (errno == EPIPE) {
+				fprintf(stderr, "[!] EPIPE on origin\n");
+				goto r;
+			}
+			printf("err: %d" ,errno);
+			// PFATAL("send()");
+		}
+		if (l == 0) {
+			goto r;
+		}
+		if (l != k) {
+			int err;
+			socklen_t err_len = sizeof(err);
+			int r = getsockopt(data->cd, SOL_SOCKET, SO_ERROR, &err,
+					   &err_len);
+			if (r < 0) {
+				PFATAL("getsockopt()");
+			}
+			errno = err;
+			if (errno == EPIPE || errno == ECONNRESET) {
+				goto r;
+			}
+			// PFATAL("send()");
+		}
+	}
+
+r:
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
-	if (argc < 2) {
+	if (argc < 4) {
 		FATAL("Usage: %s <listen:port>", argv[0]);
 	}
 
@@ -17,9 +85,12 @@ int main(int argc, char **argv)
 	net_parse_sockaddr(&listen, argv[1]);
 
 	int busy_poll = 0;
-	if (argc > 3) {
+	if (argc > 4) {
 		busy_poll = 1;
 	}
+
+	char *endptr;
+	double ts = strtod(argv[2], &endptr);
 
 	fprintf(stderr, "[+] Accepting on %s busy_poll=%d\n", net_ntop(&listen),
 		busy_poll);
@@ -60,19 +131,30 @@ again_accept:;
 
 	char buf[BUFFER_SIZE];
 
+	pthread_t thr;
+	thread_data td;
+	td.sum = 0;
+	td.target_fd = target_fd;
+	td.cd = cd;
+	int rc = 0;
+	if ((rc = pthread_create(&thr, NULL, return_data, &td))) {
+      fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
+      return EXIT_FAILURE;
+	}
+
 	uint64_t forwarded_sum = 0;
 	uint64_t return_back_sum = 0;
 	while (1) {
-		int n = recv(cd, buf, sizeof(buf), 0);
+		int n = recv(cd, buf, BUFFER_SIZE, 0);
 		if (n < 0) {
 			if (errno == EINTR) {
 				continue;
 			}
 			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET\n");
+				fprintf(stderr, "[!] 3ECONNRESET\n");
 				break;
 			}
-			PFATAL("read()");
+			// PFATAL("read()");
 		}
 
 		if (n == 0) {
@@ -89,14 +171,14 @@ again_accept:;
 				continue;
 			}
 			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET on origin\n");
+				fprintf(stderr, "[!] 4ECONNRESET on origin\n");
 				break;
 			}
 			if (errno == EPIPE) {
 				fprintf(stderr, "[!] EPIPE on origin\n");
 				break;
 			}
-			PFATAL("send()");
+			// PFATAL("send()");
 		}
 		if (m == 0) {
 			break;
@@ -113,69 +195,18 @@ again_accept:;
 			if (errno == EPIPE || errno == ECONNRESET) {
 				break;
 			}
-			PFATAL("send()");
-		}
-
-		int k = recv(target_fd, buf, sizeof(buf), 0);
-		if (k < 0) {
-			if (errno == EINTR) {
-				continue;
-			}
-			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET\n");
-				break;
-			}
-			PFATAL("read()");
-		}
-
-		if (k == 0) {
-			/* On TCP socket zero means EOF */
-			fprintf(stderr, "[-] edge side EOF\n");
-			break;
-		}
-
-		return_back_sum += k;
-
-		int l = send(cd, buf, n, 0);
-		if (l < 0) {
-			if (errno == EINTR) {
-				continue;
-			}
-			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET on origin\n");
-				break;
-			}
-			if (errno == EPIPE) {
-				fprintf(stderr, "[!] EPIPE on origin\n");
-				break;
-			}
-			PFATAL("send()");
-		}
-		if (l == 0) {
-			break;
-		}
-		if (l != k) {
-			int err;
-			socklen_t err_len = sizeof(err);
-			int r = getsockopt(cd, SOL_SOCKET, SO_ERROR, &err,
-					   &err_len);
-			if (r < 0) {
-				PFATAL("getsockopt()");
-			}
-			errno = err;
-			if (errno == EPIPE || errno == ECONNRESET) {
-				break;
-			}
-			PFATAL("send()");
+			// PFATAL("send()");
 		}
 	}
+
+	pthread_join(thr, NULL);
 
 	close(cd);
 	close(target_fd);
 	uint64_t t1 = realtime_now();
 
 	fprintf(stderr, "[+] forwared %lu in %.1fms\n", forwarded_sum, (1 - t0) / 1000000.);
-	fprintf(stderr, "[+] returned %lu in %.1fms\n", return_back_sum, (1 - t0) / 1000000.);
+	fprintf(stderr, "[+] returned %lu in %.1fms\n", td.sum, (1 - t0) / 1000000.);
 	goto again_accept;
 
 	return 0;

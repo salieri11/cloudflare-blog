@@ -1,4 +1,4 @@
-all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy echo-sockmap echo-sockmap-proxy echo-naive-proxy
+all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy echo-sockmap echo-sockmap-proxy echo-naive-proxy echo-iosubmit-proxy
 .PHONY: ebpf-prog	
 ebpf-prog: venv/.ok
 		clang -Wall -Wextra \
@@ -47,17 +47,24 @@ echo-splice:
 
 .PHONY: echo-splice-proxy
 echo-splice-proxy:
-	clang -g -Wall -Wextra -O2 \
+	clang -g -Wall -Wextra -O2 -pthread \
 	net.c \
 	echo-splice-proxy.c \
 	-o echo-splice-proxy
 
 .PHONY: echo-naive-proxy
 echo-naive-proxy:
-	clang -g -Wall -Wextra -O2 \
+	clang -g -Wall -Wextra -O2 -pthread \
 	net.c \
 	echo-naive-proxy.c \
 	-o echo-naive-proxy
+
+.PHONY: echo-iosubmit-proxy
+echo-iosubmit-proxy:
+	clang -g -Wall -Wextra -O2 -pthread \
+	net.c \
+	echo-iosubmit-proxy.c \
+	-o echo-iosubmit-proxy
 
 .PHONY: echo-sockmap
 echo-sockmap: ebpf-prog

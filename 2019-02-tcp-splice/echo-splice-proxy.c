@@ -7,8 +7,78 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <pthread.h>
 #include "common.h"
+
+typedef struct _thread_data_t {
+  int tid;
+  uint64_t sum;
+  int cd;
+  int target_fd;
+  int* pfd;
+} thread_data;
+
+void * return_data(void *arg) {
+
+	thread_data* data = (thread_data*)arg;
+	while(1) {
+		int k = splice(data->target_fd, NULL, data->pfd[1], NULL, 512 * 1024, SPLICE_F_MOVE);
+		// printf("m == %d\n", m);
+		if (k < 0) {
+			if (errno == ECONNRESET) {
+				fprintf(stderr, "[!] ECONNRESET on origin\n");
+				break;
+			}
+			if (errno == EPIPE) {
+				fprintf(stderr, "[!] EPIPE on origin\n");
+				break;
+			}
+			PFATAL("send()");
+		}
+		if (k == 0) {
+			int err;
+			socklen_t err_len = sizeof(err);
+			int r = getsockopt(data->cd, SOL_SOCKET, SO_ERROR, &err,
+					   &err_len);
+			if (r < 0) {
+				PFATAL("getsockopt()");
+			}
+			errno = err;
+			PFATAL("send()");
+		}
+
+		data->sum += k;
+
+		int l = splice(data->pfd[0], NULL, data->cd, NULL, k, SPLICE_F_MOVE);
+		// printf("m == %d\n", m);
+		if (l < 0) {
+			if (errno == ECONNRESET) {
+				fprintf(stderr, "[!] ECONNRESET on origin\n");
+				break;
+			}
+			if (errno == EPIPE) {
+				fprintf(stderr, "[!] EPIPE on origin\n");
+				break;
+			}
+			PFATAL("send()");
+		}
+		if (l == 0) {
+			int err;
+			socklen_t err_len = sizeof(err);
+			int r = getsockopt(data->cd, SOL_SOCKET, SO_ERROR, &err,
+					   &err_len);
+			if (r < 0) {
+				PFATAL("getsockopt()");
+			}
+			errno = err;
+			PFATAL("send()");
+		}
+		if (l != k) {
+			FATAL("expecting splice to block1");
+		}
+	}
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -69,22 +139,46 @@ again_accept:;
 
 	sleep(1);
 
-	int pfd[2];
-	int r = pipe(pfd);
+	int pfd_in[2];
+	int r = pipe(pfd_in);
 	if (r < 0) {
-		PFATAL("pipe()");
+		PFATAL("pipe() in");
 	}
 
-	r = fcntl(pfd[0], F_SETPIPE_SZ, SPLICE_MAX);
+	int pfd_out[2];
+	r = pipe(pfd_out);
+	if (r < 0) {
+		PFATAL("pipe() out");
+	}
+
+	r = fcntl(pfd_in[0], F_SETPIPE_SZ, SPLICE_MAX);
 	if (r < 0) {
 		PFATAL("fcntl()");
 	}	
+
+	r = fcntl(pfd_out[0], F_SETPIPE_SZ, SPLICE_MAX);
+	if (r < 0) {
+		PFATAL("fcntl() out");
+	}	
+	
+
+	pthread_t thr;
+	thread_data td;
+	td.sum = 0;
+	td.target_fd = target_fd;
+	td.cd = cd;
+	td.pfd = pfd_out;
+	int rc = 0;
+	if ((rc = pthread_create(&thr, NULL, return_data, &td))) {
+      fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
+      return EXIT_FAILURE;
+	}
 
 	uint64_t forwared_sum = 0, received_back_sum = 0;
 	while (1) {
 		/* This is fairly unfair. We are doing 512KiB buffer
 		 * in one go, as opposed to naive approaches. Cheating. */
-		int n = splice(cd, NULL, pfd[1], NULL, SPLICE_MAX, SPLICE_F_MOVE);
+		int n = splice(cd, NULL, pfd_in[1], NULL, SPLICE_MAX, SPLICE_F_MOVE);
 		// printf("n == %d\n", n);
 		if (n < 0) {
 			printf("error == %d\n", errno);
@@ -105,7 +199,7 @@ again_accept:;
 
 		forwared_sum += n;
 
-		int m = splice(pfd[0], NULL, target_fd, NULL, n, SPLICE_F_MOVE);
+		int m = splice(pfd_in[0], NULL, target_fd, NULL, n, SPLICE_F_MOVE);
 		// printf("m == %d\n", m);
 		if (m < 0) {
 			if (errno == ECONNRESET) {
@@ -133,67 +227,15 @@ again_accept:;
 			FATAL("expecting splice to block2");
 		}
 
-		int k = splice(target_fd, NULL, pfd[1], NULL, SPLICE_MAX, SPLICE_F_MOVE);
-		// printf("m == %d\n", m);
-		if (k < 0) {
-			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET on origin\n");
-				break;
-			}
-			if (errno == EPIPE) {
-				fprintf(stderr, "[!] EPIPE on origin\n");
-				break;
-			}
-			PFATAL("send()");
-		}
-		if (k == 0) {
-			int err;
-			socklen_t err_len = sizeof(err);
-			int r = getsockopt(cd, SOL_SOCKET, SO_ERROR, &err,
-					   &err_len);
-			if (r < 0) {
-				PFATAL("getsockopt()");
-			}
-			errno = err;
-			PFATAL("send()");
-		}
-
-		received_back_sum += k;
-
-		int l = splice(pfd[0], NULL, cd, NULL, k, SPLICE_F_MOVE);
-		// printf("m == %d\n", m);
-		if (l < 0) {
-			if (errno == ECONNRESET) {
-				fprintf(stderr, "[!] ECONNRESET on origin\n");
-				break;
-			}
-			if (errno == EPIPE) {
-				fprintf(stderr, "[!] EPIPE on origin\n");
-				break;
-			}
-			PFATAL("send()");
-		}
-		if (l == 0) {
-			int err;
-			socklen_t err_len = sizeof(err);
-			int r = getsockopt(cd, SOL_SOCKET, SO_ERROR, &err,
-					   &err_len);
-			if (r < 0) {
-				PFATAL("getsockopt()");
-			}
-			errno = err;
-			PFATAL("send()");
-		}
-		if (l != k) {
-			FATAL("expecting splice to block1");
-		}
 	}
+
+	pthread_join(thr, NULL);
 
 	close(cd);
 	close(target_fd);
 	uint64_t t1 = realtime_now();
 
-	fprintf(stderr, "[+] Forwarded %lu in %.1fms\n", forwared_sum, (t1 - t0) / 1000000.);
+	fprintf(stderr, "[+] Forwarded %lu in %.1fms\n", td.sum, (t1 - t0) / 1000000.);
 	fprintf(stderr, "[+] Returned %lu in %.1fms\n", received_back_sum, (t1 - t0) / 1000000.);
 	goto again_accept;
 

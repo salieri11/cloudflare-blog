@@ -6,3 +6,5 @@ echo-iosubmit
 echo-splice-proxy
 test-burst
 echo-sockmap-proxy
+echo-iosubmit-proxy
+echo-naive-proxy
