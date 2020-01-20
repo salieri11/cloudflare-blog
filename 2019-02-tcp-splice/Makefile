@@ -1,4 +1,4 @@
-all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy echo-sockmap echo-sockmap-proxy
+all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy echo-sockmap echo-sockmap-proxy echo-naive-proxy
 .PHONY: ebpf-prog	
 ebpf-prog: venv/.ok
 		clang -Wall -Wextra \
