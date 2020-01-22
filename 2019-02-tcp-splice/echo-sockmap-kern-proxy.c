@@ -40,15 +40,15 @@ int _prog_parser(struct __sk_buff *skb)
 SEC("prog_verdict")
 int _prog_verdict(struct __sk_buff *skb)
 {
-	static uint32_t ip_receiver = 599884472; // "35.193.130.184"
-	static uint32_t ip_sender = 602903655; // "	35.239.148.103"
+	// static uint32_t ip_receiver = 599884472; // "35.193.130.184"
+	// static uint32_t ip_sender = 602903655; // "	35.239.148.103"
 	
-	uint32_t rem_ip = skb->remote_ip4;
+	//uint32_t rem_ip = skb->remote_ip4;
 	// bpf_debug("verdict %lu", htonl(rem_ip));
 	// uint32_t rem_ip = ntohl(skb->remote_ip4);
 	int idx = 0;
-	if(skb->remote_ip4 == 1737813795)
+	if(skb->remote_ip4 == 176160777)
 		idx = 1;
 
-	return bpf_sk_redirect_map(skb, &sock_map, idx, 0);
+	return bpf_sk_redirect_map(skb, &sock_map, 1, 0);
 }
