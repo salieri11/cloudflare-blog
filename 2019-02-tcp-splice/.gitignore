@@ -8,3 +8,4 @@ test-burst
 echo-sockmap-proxy
 echo-iosubmit-proxy
 echo-naive-proxy
+test-burst-zerocopy

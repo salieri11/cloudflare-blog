@@ -75,6 +75,7 @@ again_accept:;
 
 		sum += n;
 
+		/*
 		int m = send(cd, buf, n, MSG_NOSIGNAL);
 		if (m < 0) {
 			if (errno == EINTR) {
@@ -107,6 +108,7 @@ again_accept:;
 			}
 			PFATAL("send()");
 		}
+		*/
 	}
 
 	close(cd);
