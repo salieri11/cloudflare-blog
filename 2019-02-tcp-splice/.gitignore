@@ -9,3 +9,4 @@ echo-sockmap-proxy
 echo-iosubmit-proxy
 echo-naive-proxy
 test-burst-zerocopy
+test-burst-pp-simple
