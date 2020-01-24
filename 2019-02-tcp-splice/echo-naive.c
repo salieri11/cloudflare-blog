@@ -53,6 +53,8 @@ again_accept:;
 
 	char buf[BUFFER_SIZE];
 
+	printf("[+] accepted\n");
+
 	uint64_t sum = 0;
 	while (1) {
 		int n = recv(cd, buf, sizeof(buf), 0);
@@ -75,7 +77,7 @@ again_accept:;
 
 		sum += n;
 
-		int m = send(cd, buf, n, MSG_NOSIGNAL);
+		int m = send(cd, buf, n, 0);
 		if (m < 0) {
 			if (errno == EINTR) {
 				continue;
