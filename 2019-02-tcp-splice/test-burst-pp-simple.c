@@ -69,6 +69,7 @@ int main(int argc, char **argv)
 	/* Attempt to set large TX and RX buffer. Why not. */
 	uint64_t total_t0 = realtime_now();
 
+
 	int burst_i;
 	char* tx_idx = memory;
 	int mem_end = BUF_LEN * NUM_OF_BUFFERS;
@@ -133,7 +134,7 @@ int main(int argc, char **argv)
 					}
 				}
 				if (n == 0) {
-					PFATAL("?");
+					// PFATAL("?");
 				}
 				if (n > 0) {
 					rx_bytes -= n;

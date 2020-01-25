@@ -50,5 +50,5 @@ int _prog_verdict(struct __sk_buff *skb)
 	if(skb->remote_ip4 == 176160777)
 		idx = 1;
 
-	return bpf_sk_redirect_map(skb, &sock_map, 1, 0);
+	return bpf_sk_redirect_map(skb, &sock_map, idx, 0);
 }
