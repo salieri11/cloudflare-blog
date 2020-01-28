@@ -68,6 +68,11 @@ int main(int argc, char **argv)
 
 	/* Attempt to set large TX and RX buffer. Why not. */
 	uint64_t total_t0 = realtime_now();
+	int one =1;
+	//if (setsockopt(fd, SOL_SOCKET, SO_ZEROCOPY, &one, sizeof(one))) {
+        //	printf("setsockopt zerocopy");
+	//	return 0;
+	//}
 
 	int burst_i;
 	char* tx_idx = memory;
@@ -81,9 +86,10 @@ int main(int argc, char **argv)
     int n = 0;
 		while (tx_bytes) {
 			if (tx_bytes) {
-				int n = send(fd, tx_idx, tx_bytes, MSG_ZEROCOPY);
+				int n = send(fd, tx_idx, tx_bytes, 0);
 				if (n < 0) {
 					if (errno == EINTR) {
+						// printf("111\n");
 						continue;
 					}
 					if (errno == ECONNRESET) {
@@ -96,7 +102,7 @@ int main(int argc, char **argv)
 						break;
 					}
 					if (errno == EAGAIN) {
-						// pass
+						printf("22222\n");
 					} else {
 						PFATAL("send()");
 					}
@@ -106,7 +112,7 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					tx_bytes -= n;
-					// printf("sent: %d, left: %d\n", n, tx_bytes);
+					 //printf("sent: %d, left: %d\n", n, tx_bytes);
 				}
 			}
 		}

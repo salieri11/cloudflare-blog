@@ -134,18 +134,18 @@ again_accept:;
 		PFATAL("connect()");
 	}
 
-	{
+	
                 /* There is a bug in sockmap which prevents it from
                  * working right when snd buffer is full. Set it to
                  * gigantic value. */
                 int val = 32 * 1024 * 1024;
                 setsockopt(target_fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
-        }
+        
 
 	/* [*] Perform ebpf socket magic */
 	/* Add socket to SOCKMAP. Otherwise the ebpf won't work. */
 	int idx = 0;
-	int val = fd;
+	val = fd;
 	r = tbpf_map_update_elem(sock_map, &idx, &val, BPF_ANY);
 	if (r != 0) {
 		if (errno == EOPNOTSUPP) {

@@ -15,23 +15,26 @@ typedef struct _thread_data_t {
 } thread_data;
 
 void *return_data(void *arg) {
+	printf("thread start\n");
 	thread_data* data = (thread_data*)arg;
 	char buf[BUFFER_SIZE];
 	while(1) {
 	int k = recv(data->target_fd, buf, sizeof(buf), 0);
 		if (k < 0) {
 			if (errno == EINTR) {
+				fprintf(stderr, "[!] EINTR1\n");
 				continue;
 			}
 			if (errno == ECONNRESET) {
 				fprintf(stderr, "[!] 1ECONNRESET\n");
+				break;
 			}
 		}
 
 		if (k == 0) {
 			/* On TCP socket zero means EOF */
-			fprintf(stderr, "[-] edge side EOF\n");
-			goto r;
+			fprintf(stderr, "[-] edge side EOF1\n");
+			break;
 		}
 
 		data->sum += k;
@@ -39,21 +42,22 @@ void *return_data(void *arg) {
 		int l = send(data->cd, buf, k, 0);
 		if (l < 0) {
 			if (errno == EINTR) {
+				fprintf(stderr, "[-] edge side EOF122\n");
 				continue;
 			}
 			if (errno == ECONNRESET) {
 				fprintf(stderr, "[!] 2ECONNRESET on origin\n");
-				goto r;
+				break;
 			}
 			if (errno == EPIPE) {
 				fprintf(stderr, "[!] EPIPE on origin\n");
-				goto r;
+				break;
 			}
 			printf("err: %d" ,errno);
 			// PFATAL("send()");
 		}
 		if (l == 0) {
-			goto r;
+			break;
 		}
 		if (l != k) {
 			int err;
@@ -65,19 +69,19 @@ void *return_data(void *arg) {
 			}
 			errno = err;
 			if (errno == EPIPE || errno == ECONNRESET) {
-				goto r;
+				break;
 			}
 			// PFATAL("send()");
 		}
 	}
 
-r:
+	printf("thread end\n");
 	return 0;
 }
 
 int main(int argc, char **argv)
 {
-	if (argc < 4) {
+	if (argc < 3) {
 		FATAL("Usage: %s <listen:port>", argv[0]);
 	}
 
@@ -85,7 +89,7 @@ int main(int argc, char **argv)
 	net_parse_sockaddr(&listen, argv[1]);
 
 	int busy_poll = 0;
-	if (argc > 4) {
+	if (argc > 3) {
 		busy_poll = 1;
 	}
 
@@ -120,12 +124,16 @@ again_accept:;
 		}
 	}
 
+	printf("[+] accepted\n");
+
 	struct sockaddr_storage target;
 	net_parse_sockaddr(&target, argv[2]);
 	int target_fd = net_connect_tcp_blocking(&target, 1);
 	if (target_fd < 0) {
 		PFATAL("connect()");
 	}
+
+	printf("[+] connected\n");
 
 	uint64_t t0 = realtime_now();
 
@@ -159,7 +167,7 @@ again_accept:;
 
 		if (n == 0) {
 			/* On TCP socket zero means EOF */
-			fprintf(stderr, "[-] edge side EOF\n");
+			fprintf(stderr, "[-] edge side EOF2\n");
 			break;
 		}
 
@@ -199,10 +207,14 @@ again_accept:;
 		}
 	}
 
-	pthread_join(thr, NULL);
 
 	close(cd);
 	close(target_fd);
+	pthread_cancel(thr);
+	printf("joining\n");
+	pthread_join(thr, NULL);
+	printf("joined\n");
+	
 	uint64_t t1 = realtime_now();
 
 	fprintf(stderr, "[+] forwared %lu in %.1fms\n", forwarded_sum, (1 - t0) / 1000000.);

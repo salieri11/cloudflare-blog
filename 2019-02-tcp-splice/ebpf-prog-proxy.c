@@ -25,9 +25,93 @@ struct bpf_insn bpf_insn_prog_parser[] = {{
 struct tbpf_reloc bpf_reloc_prog_parser[] = {
 	{.name = NULL, .type = 0, .offset = 0}};
 
-size_t bpf_insn_prog_verdict_cnt = 6;
+size_t bpf_insn_prog_verdict_cnt = 18;
 
 struct bpf_insn bpf_insn_prog_verdict[] = {
+	{
+		.code = 0xbf,
+		.dst_reg = BPF_REG_6,
+		.src_reg = BPF_REG_1,
+		.off = 0,
+		.imm = 0 /**/
+	},
+	{
+		.code = 0xb7,
+		.dst_reg = BPF_REG_1,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 7695397 /**/
+	},
+	{
+		.code = 0x63,
+		.dst_reg = BPF_REG_10,
+		.src_reg = BPF_REG_1,
+		.off = -8,
+		.imm = 0 /**/
+	},
+	{
+		.code = 0x18,
+		.dst_reg = BPF_REG_1,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 1685218678 /**/
+	},
+	{
+		.code = 0x0,
+		.dst_reg = BPF_REG_0,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 544498537 /**/
+	},
+	{
+		.code = 0x7b,
+		.dst_reg = BPF_REG_10,
+		.src_reg = BPF_REG_1,
+		.off = -16,
+		.imm = 0 /**/
+	},
+	{
+		.code = 0x61,
+		.dst_reg = BPF_REG_3,
+		.src_reg = BPF_REG_6,
+		.off = 92,
+		.imm = 0 /**/
+	},
+	{
+		.code = 0xbf,
+		.dst_reg = BPF_REG_1,
+		.src_reg = BPF_REG_10,
+		.off = 0,
+		.imm = 0 /**/
+	},
+	{
+		.code = 0x7,
+		.dst_reg = BPF_REG_1,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = -16 /**/
+	},
+	{
+		.code = 0xb7,
+		.dst_reg = BPF_REG_2,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 12 /**/
+	},
+	{
+		.code = 0x85,
+		.dst_reg = BPF_REG_0,
+		.src_reg = BPF_REG_0,
+		.off = 0,
+		.imm = 6 /**/
+	},
+	{
+		.code = 0xbf,
+		.dst_reg = BPF_REG_1,
+		.src_reg = BPF_REG_6,
+		.off = 0,
+		.imm = 0 /**/
+	},
 	{
 		.code = 0x18,
 		.dst_reg = BPF_REG_2,
@@ -72,5 +156,5 @@ struct bpf_insn bpf_insn_prog_verdict[] = {
 	}};
 
 struct tbpf_reloc bpf_reloc_prog_verdict[] = {
-	{.name = "sock_map", .type = 1, .offset = 0},
+	{.name = "sock_map", .type = 1, .offset = 12},
 	{.name = NULL, .type = 0, .offset = 0}};

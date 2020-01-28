@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 	}
 
 	sleep(1);
+	printf ("[+] connected\n");
 
 	/*
 	int val = 10 * 1000; // 10 ms, in us. requires CAP_NET_ADMIN

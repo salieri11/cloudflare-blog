@@ -44,10 +44,10 @@ int _prog_verdict(struct __sk_buff *skb)
 	// static uint32_t ip_sender = 602903655; // "	35.239.148.103"
 	
 	//uint32_t rem_ip = skb->remote_ip4;
-	// bpf_debug("verdict %lu", htonl(rem_ip));
+	bpf_debug("verdict %lu", skb->remote_ip4);
 	// uint32_t rem_ip = ntohl(skb->remote_ip4);
 	int idx = 0;
-	if(skb->remote_ip4 == 176160777)
+	if(skb->remote_ip4 == 151027722)
 		idx = 1;
 
 	return bpf_sk_redirect_map(skb, &sock_map, 1, 0);

@@ -53,11 +53,14 @@ again_accept:;
 
 	char buf[BUFFER_SIZE];
 
+	printf("[+] accepted\n");
+
 	uint64_t sum = 0;
 	while (1) {
 		int n = recv(cd, buf, sizeof(buf), 0);
 		if (n < 0) {
 			if (errno == EINTR) {
+				fprintf(stderr, "[!] EINTR\n");
 				continue;
 			}
 			if (errno == ECONNRESET) {
@@ -74,11 +77,12 @@ again_accept:;
 		}
 
 		sum += n;
+		// printf("received: %d, total: %lu", n, sum);
 
-		/*
-		int m = send(cd, buf, n, MSG_NOSIGNAL);
+		int m = send(cd, buf, n, 0);
 		if (m < 0) {
 			if (errno == EINTR) {
+				fprintf(stderr, "[!] EINTR1\n");
 				continue;
 			}
 			if (errno == ECONNRESET) {
@@ -108,7 +112,7 @@ again_accept:;
 			}
 			PFATAL("send()");
 		}
-		*/
+		// printf("received: %d, total: %lu", m, sum);
 	}
 
 	close(cd);

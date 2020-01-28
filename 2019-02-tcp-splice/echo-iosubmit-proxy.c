@@ -25,30 +25,33 @@ void *return_data(void *arg) {
 		PFATAL("io_setup(1)");
 	}
 
-	thread_data* data = (thread_data*)arg;
 	char buf[BUFFER_SIZE];
-	while(1) {
-		char buf[BUFFER_SIZE];
-
-		struct iocb cb[2] = {{.aio_fildes = data->cd,
+	thread_data* data = (thread_data*)arg;
+	struct iocb cb[2] = {{.aio_fildes = data->cd,
 					.aio_lio_opcode = IOCB_CMD_PWRITE,
 					.aio_buf = (uint64_t)buf,
 					.aio_nbytes = 0},
 					{.aio_fildes = data->target_fd,
 					.aio_lio_opcode = IOCB_CMD_PREAD,
 					.aio_buf = (uint64_t)buf,
-					.aio_nbytes = BUFFER_SIZE}};
+					.aio_nbytes = BUFFER_SIZE}
+					};
 		struct iocb *list_of_iocb[2] = {&cb[0], &cb[1]};
+	
+	while(1) {
+		char buf[BUFFER_SIZE];
 
 		r = io_submit(ctx, 2, list_of_iocb);
 		if (r != 2) {
 			PFATAL("io_submit()");
 		}
 
+		// printf("r1 %d\n", r);
 		/* We must pick up the result, since we need to get
 		 * the number of bytes read. */
 		struct io_event events[2] = {{0}};
 		r = io_getevents(ctx, 1, 2, events, NULL);
+		//printf("r2 %d\n", r);
 		if (r < 0) {
 			PFATAL("io_getevents()");
 		}
@@ -62,13 +65,14 @@ void *return_data(void *arg) {
 			perror("io_submit(IOCB_CMD_PREAD)");
 			break;
 		}
+		
 		if (events[1].res == 0) {
-			fprintf(stderr, "[-] edge side EOF\n");
+			fprintf(stderr, "[-] edge side EOF22\n");
 			break;
 		}
 		cb[0].aio_nbytes = events[1].res;
 		data->sum += events[1].res;
-		printf("data: %lu", data->sum);
+		// printf("returned data: %lld", events[1].res);
 	}
 r:
 	return 0;
@@ -165,10 +169,12 @@ again_accept:;
 			PFATAL("io_submit()");
 		}
 
+		// printf("r1 %d\n", r);
 		/* We must pick up the result, since we need to get
 		 * the number of bytes read. */
 		struct io_event events[2] = {{0}};
 		r = io_getevents(ctx, 1, 2, events, NULL);
+		// printf("r2 %d\n", r);
 		if (r < 0) {
 			PFATAL("io_getevents()");
 		}
@@ -183,17 +189,19 @@ again_accept:;
 			break;
 		}
 		if (events[1].res == 0) {
-			fprintf(stderr, "[-] edge side EOF\n");
+			fprintf(stderr, "[-] edge side EOF1\n");
 			break;
 		}
 		cb[0].aio_nbytes = events[1].res;
 		sum += events[1].res;
+		// printf("forwared %lld", events[1].res);
 	}
 
-	pthread_join(thr, NULL);
 
 	close(cd);
 	close(target_fd);
+	pthread_cancel(rc);
+	pthread_join(thr, NULL);	
 
 	uint64_t t1 = realtime_now();
 
