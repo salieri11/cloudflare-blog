@@ -59,12 +59,14 @@ int main(int argc, char **argv)
 	fprintf(stderr, "[+] Sending %ld blocks of %.1fMiB to %s\n",
 		burst_count, burst_sz / (1024 * 1024.), net_ntop(&target));
 
-	int fd = net_connect_tcp_blocking(&target, 1);
+	int fd = net_connect_tcp_blocking(&target, 0);
 	if (fd < 0) {
 		PFATAL("connect()");
 	}
 
 	sleep(1);
+
+	/*
 
 	int val = 10 * 1000; // 10 ms, in us. requires CAP_NET_ADMIN
 	int r = setsockopt(fd, SOL_SOCKET, SO_BUSY_POLL, &val, sizeof(val));
@@ -77,9 +79,10 @@ int main(int argc, char **argv)
 			PFATAL("setsockopt(SOL_SOCKET, SO_BUSY_POLL)");
 		}
 	}
+	*/
 
 	/* Attempt to set large TX and RX buffer. Why not. */
-	val = burst_sz * 2;
+        int val = burst_sz * 2;
 	setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
 
@@ -107,7 +110,7 @@ int main(int argc, char **argv)
 		uint64_t t0 = realtime_now();
 
 		uint64_t tx_bytes = burst_sz;
-		uint64_t rx_bytes = burst_sz;
+		uint64_t rx_bytes = 0;
 
 		while (tx_bytes) {
 			if (tx_bytes) {
@@ -142,7 +145,7 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					tx_bytes -= n;
-					printf("sent: %d, left: %d\n", n, tx_bytes);
+//					printf("sent: %d, left: %d\n", n, tx_bytes);
 				}
 			}
 

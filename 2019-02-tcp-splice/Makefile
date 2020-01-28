@@ -1,6 +1,5 @@
 all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy \
-		echo-sockmap echo-sockmap-proxy echo-naive-proxy echo-iosubmit-proxy \
-	 	test-burst-zerocopy	test-burst-pp-simple
+		echo-sockmap echo-sockmap-proxy echo-naive-proxy echo-iosubmit-proxy test-burst-zerocopy test-burst-pp-simple
 .PHONY: ebpf-prog
 ebpf-prog: venv/.ok
 		clang -Wall -Wextra \
@@ -77,7 +76,7 @@ test-burst-zerocopy:
 
 
 .PHONY: test-burst-pp-simple
-test-burst-zerocopy:
+test-burst-pp-simple:
 	clang -g -Wall -Wextra -O2 \
 	net.c \
 	test-burst-pp-simple.c \
