@@ -78,10 +78,9 @@ int main(int argc, char **argv)
 			tx_idx = memory;
 
 		int tx_bytes = burst_sz;
-    int n = 0;
 		while (tx_bytes) {
 			if (tx_bytes) {
-				int n = send(fd, tx_idx, tx_bytes, MSG_ZEROCOPY);
+				int n = send(fd, tx_idx, tx_bytes,0);
 				if (n < 0) {
 					if (errno == EINTR) {
 						continue;
@@ -106,6 +105,38 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					tx_bytes -= n;
+					// printf("sent: %d, left: %d\n", n, tx_bytes);
+				}
+			}
+		}
+    int rx_bytes = burst_sz;
+		while (rx_bytes) {
+			if (rx_bytes) {
+				int n = recv(fd, tx_idx, rx_bytes,0);
+				if (n < 0) {
+					if (errno == EINTR) {
+						continue;
+					}
+					if (errno == ECONNRESET) {
+						fprintf(stderr,
+							"[!] ECONNRESET\n");
+						break;
+					}
+					if (errno == EPIPE) {
+						fprintf(stderr, "[!] EPIPE\n");
+						break;
+					}
+					if (errno == EAGAIN) {
+						// pass
+					} else {
+						PFATAL("send()");
+					}
+				}
+				if (n == 0) {
+					PFATAL("?");
+				}
+				if (n > 0) {
+					rx_bytes -= n;
 					// printf("sent: %d, left: %d\n", n, tx_bytes);
 				}
 			}
