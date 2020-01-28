@@ -10,3 +10,5 @@ echo-iosubmit-proxy
 echo-naive-proxy
 test-burst-zerocopy
 test-burst-pp-simple
+send-file
+myrandom*

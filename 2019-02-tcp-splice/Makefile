@@ -1,5 +1,6 @@
 all: test-burst echo-naive echo-iosubmit echo-splice echo-splice-proxy \
-		echo-sockmap echo-sockmap-proxy echo-naive-proxy echo-iosubmit-proxy test-burst-zerocopy test-burst-pp-simple
+		echo-sockmap echo-sockmap-proxy echo-naive-proxy echo-iosubmit-proxy test-burst-zerocopy test-burst-pp-simple \
+		send-file
 .PHONY: ebpf-prog
 ebpf-prog: venv/.ok
 		clang -Wall -Wextra \
@@ -99,6 +100,13 @@ echo-sockmap-proxy: ebpf-prog-proxy
 		ebpf-prog-proxy.c \
 		echo-sockmap-proxy.c \
 		-o echo-sockmap-proxy
+
+.PHONY: send-file
+send-file:
+	gcc -g -Wall -Wextra -O2 \
+		net.c \
+		send_file.c \
+		-o send-file
 
 venv/.ok:
 	virtualenv venv --python=python3
