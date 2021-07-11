@@ -66,6 +66,11 @@ int main(int argc, char **argv)
 
 	sleep(1);
 
+	char msg[burst_sz];
+	uint i;
+	for(i = 0; i < burst_sz; ++i)
+		msg[i] = i;
+
 	/*
 
 	int val = 10 * 1000; // 10 ms, in us. requires CAP_NET_ADMIN
@@ -82,7 +87,7 @@ int main(int argc, char **argv)
 	*/
 
 	/* Attempt to set large TX and RX buffer. Why not. */
-        int val = burst_sz * 2;
+	int val = burst_sz * 2;
 	setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
 
@@ -93,7 +98,6 @@ int main(int argc, char **argv)
 	int iov_cnt = (burst_sz / sizeof(tx_buf)) + 1;
 	struct iovec tx_iov[iov_cnt];
 	struct iovec rx_iov[iov_cnt];
-	int i;
 	for (i = 0; i < iov_cnt; i++) {
 		tx_iov[i] = (struct iovec){.iov_base = tx_buf,
 					   .iov_len = sizeof(tx_buf)};
@@ -103,7 +107,8 @@ int main(int argc, char **argv)
 
 	uint64_t total_t0 = realtime_now();
 
-	printf("total data: %lu, chunk_size:%lu", burst_count * burst_sz, burst_sz);
+	printf("total data: %lu, chunk_size:%lu", burst_count * burst_sz,
+	       burst_sz);
 
 	int burst_i;
 	for (burst_i = 0; burst_i < burst_count; burst_i += 1) {
@@ -113,41 +118,41 @@ int main(int argc, char **argv)
 		uint64_t rx_bytes = 0;
 
 		while (tx_bytes) {
-			if (tx_bytes) {
-				int d = trunc_iov(tx_iov, iov_cnt,
-						  sizeof(tx_buf), MIN(128*1024*1024, tx_bytes));
-				struct msghdr msg_hdr = {
-					.msg_iov = tx_iov,
-					.msg_iovlen = d,
-				};
-				int n = sendmsg(fd, &msg_hdr, 0);
-				if (n < 0) {
-					if (errno == EINTR) {
-						continue;
-					}
-					if (errno == ECONNRESET) {
-						fprintf(stderr,
-							"[!] ECONNRESET\n");
-						break;
-					}
-					if (errno == EPIPE) {
-						fprintf(stderr, "[!] EPIPE\n");
-						break;
-					}
-					if (errno == EAGAIN) {
-						// pass
-					} else {
-						PFATAL("send()");
-					}
+			int d = trunc_iov(
+				tx_iov, iov_cnt, sizeof(tx_buf),
+				MIN(128 * 1024 * 1024, tx_bytes));
+			struct msghdr msg_hdr = {
+				.msg_iov = tx_iov,
+				.msg_iovlen = d,
+			};
+			int n = send(fd, msg, burst_sz, 0);
+			if (n < 0) {
+				if (errno == EINTR) {
+					continue;
 				}
-				if (n == 0) {
-					PFATAL("?");
+				if (errno == ECONNRESET) {
+					fprintf(stderr,
+						"[!] ECONNRESET\n");
+					break;
 				}
-				if (n > 0) {
-					tx_bytes -= n;
-//					printf("sent: %d, left: %d\n", n, tx_bytes);
+				if (errno == EPIPE) {
+					fprintf(stderr, "[!] EPIPE\n");
+					break;
+				}
+				if (errno == EAGAIN) {
+					// pass
+				} else {
+					PFATAL("send()");
 				}
 			}
+			if (n == 0) {
+				PFATAL("?");
+			}
+			if (n > 0) {
+				tx_bytes -= n;
+				printf("sent: %d, left: %lu\n", n, tx_bytes);
+			}
+
 
 			if (rx_bytes) {
 				int flags = MSG_DONTWAIT;
@@ -157,8 +162,9 @@ int main(int argc, char **argv)
 					flags = MSG_WAITALL;
 				}
 
-				int d = trunc_iov(rx_iov, iov_cnt,
-						  sizeof(rx_buf), MIN(128*1024*1024,rx_bytes));
+				int d = trunc_iov(
+					rx_iov, iov_cnt, sizeof(rx_buf),
+					MIN(128 * 1024 * 1024, rx_bytes));
 				struct msghdr msg_hdr = {
 					.msg_iov = rx_iov,
 					.msg_iovlen = d,
@@ -176,16 +182,14 @@ int main(int argc, char **argv)
 				}
 				if (n > 0) {
 					rx_bytes -= n;
-					printf("received: %d, total: %d\n", n, rx_bytes);
+					printf("received: %d, total: %d\n", n,
+					       rx_bytes);
 				}
 			}
-	
 		}
 
 		uint64_t t1 = realtime_now();
 		// printf("%ld\n", (t1 - t0) / 1000);
-
-
 	}
 	close(fd);
 
