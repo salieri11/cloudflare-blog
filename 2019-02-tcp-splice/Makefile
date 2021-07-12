@@ -21,14 +21,14 @@ ebpf-prog: venv/.ok
 
 .PHONY: test-burst
 test-burst:
-	clang -g -Wall -Wextra -O2 \
+	clang -g -Wall -Wextra -O3 \
 		net.c \
 		test-burst.c \
 		-o test-burst
 
 .PHONY: echo-naive
 echo-naive:
-	clang -g -Wall -Wextra -O2 \
+	clang -g -Wall -Wextra -O3 \
 		net.c \
 		echo-naive.c \
 		-o echo-naive

@@ -57,7 +57,8 @@ again_accept:;
 
 	uint64_t sum = 0;
 	while (1) {
-		int n = recv(cd, buf, sizeof(buf), 0);
+		int n = read(cd, buf, sizeof(buf));
+		/*
 		if (n < 0) {
 			if (errno == EINTR) {
 				fprintf(stderr, "[!] EINTR\n");
@@ -71,10 +72,11 @@ again_accept:;
 		}
 
 		if (n == 0) {
-			/* On TCP socket zero means EOF */
 			fprintf(stderr, "[-] edge side EOF\n");
 			break;
 		}
+		
+		*/
 
 		sum += n;
 		// printf("received: %d, total: %lu", n, sum);
